@@ -34,9 +34,9 @@ describe "ohai" do
     #
     it "the hostname plugin must return in under 4 seconds" do
       # we time the command and then compare to the timing result in order to display how long it actually took
-      start = Time.now
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       shell_out!("#{ohai} hostname")
-      delta = Time.now - start
+      delta = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
       expect(delta).to be < 0
     end
 
@@ -47,9 +47,9 @@ describe "ohai" do
     # issue or poor performance due to I/O on starting up ruby to run ohai, etc.
     #
     it "the hostname plugin must also be fast when called from pure ruby" do
-      start = Time.now
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       Ohai::System.new.all_plugins(["hostname"])
-      delta = Time.now - start
+      delta = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
       expect(delta).to be < 0
     end
   end
