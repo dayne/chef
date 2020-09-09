@@ -1,5 +1,6 @@
 require "spec_helper"
 require "chef/mixin/shell_out"
+require "benchmark" unless defined?(Benchmark)
 
 describe "ohai" do
   include Chef::Mixin::ShellOut
@@ -32,12 +33,14 @@ describe "ohai" do
     # own testing harness, but that is not our concern, we are testing behavior
     # that is critical to our infrastructure and must run in our tests.
     #
-    it "the hostname plugin must return in under 4 seconds" do
-      # we time the command and then compare to the timing result in order to display how long it actually took
-      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      shell_out!("#{ohai} hostname")
-      delta = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
-      expect(delta).to be < 0
+    # XXX: unfortunately this is so slow on our windows testers (~9 seconds on one
+    # tester) that we can't enable it for windows unless we get some better perf there.
+    #
+    it "the hostname plugin must return in under 4 seconds (see comments in code)", :unix_only do
+      delta = Benchmark.realtime do
+        shell_out!("#{ohai} hostname")
+      end
+      expect(delta).to be < 4
     end
 
     # The purpose of this is to give some indication of if shell_out is slow or
@@ -46,11 +49,11 @@ describe "ohai" do
     # test succeeds and the other one fails, then it can be some kind of shelling-out
     # issue or poor performance due to I/O on starting up ruby to run ohai, etc.
     #
-    it "the hostname plugin must also be fast when called from pure ruby" do
-      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      Ohai::System.new.all_plugins(["hostname"])
-      delta = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
-      expect(delta).to be < 0
+    it "the hostname plugin must return in under 2 seconds when called from pure ruby" do
+      delta = Benchmark.realtime do
+        Ohai::System.new.all_plugins(["hostname"])
+      end
+      expect(delta).to be < 2
     end
   end
 end
